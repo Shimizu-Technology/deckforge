@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, FileText, ImageIcon, Loader2, MonitorPlay, Plus, Save, Sparkles, Trash2 } from "lucide-react";
+import { Copy, Download, FileText, Globe2, ImageIcon, Loader2, Lock, MonitorPlay, Plus, Save, Sparkles, Trash2 } from "lucide-react";
 import { nanoid } from "nanoid";
 import type { Deck, Slide } from "@/lib/deck-schema";
-import { getLocalDeck, saveLocalDeck } from "@/lib/storage";
+import { deleteDeck, getDeck, updateDeck } from "@/lib/storage";
 import { themes } from "@/lib/themes";
 import { SlideRenderer } from "./slide-renderer";
 
@@ -25,10 +25,19 @@ export function DeckEditor({ id }: { id: string }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [generatingImage, setGeneratingImage] = useState(false);
   const [generatingAllImages, setGeneratingAllImages] = useState(false);
+  const [saveSource, setSaveSource] = useState<"server" | "local">("local");
   const active = deck?.slides[activeIndex];
 
   useEffect(() => {
-    queueMicrotask(() => setDeck(getLocalDeck(id)));
+    let mounted = true;
+    void getDeck(id).then((result) => {
+      if (!mounted) return;
+      setDeck(result.deck);
+      setSaveSource(result.source);
+    });
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   const markdown = useMemo(() => {
@@ -41,7 +50,13 @@ export function DeckEditor({ id }: { id: string }) {
   function persist(next: Deck) {
     const updated = { ...next, updatedAt: new Date().toISOString() };
     setDeck(updated);
-    saveLocalDeck(updated);
+    void updateDeck(updated).then(setSaveSource);
+  }
+
+  async function removeDeck() {
+    if (!deck) return;
+    await deleteDeck(deck.id);
+    window.location.href = "/app";
   }
 
   function updateActive(patch: Partial<Slide>) {
@@ -105,6 +120,12 @@ export function DeckEditor({ id }: { id: string }) {
     }
   }
 
+  async function copyShareLink() {
+    if (!deck) return;
+    const url = `${window.location.origin}/d/${deck.id}`;
+    await navigator.clipboard?.writeText(url);
+  }
+
   async function exportPptx() {
     if (!deck) return;
     const response = await fetch("/api/export/pptx", {
@@ -126,7 +147,7 @@ export function DeckEditor({ id }: { id: string }) {
       <main className="min-h-screen bg-slate-950 p-8 text-white">
         <div className="mx-auto max-w-2xl rounded-3xl border border-white/10 bg-white/5 p-8">
           <h1 className="text-3xl font-bold">Deck not found</h1>
-          <p className="mt-3 text-slate-300">This MVP stores decks locally in your browser until Neon persistence is configured.</p>
+          <p className="mt-3 text-slate-300">DeckForge checks your account first, then falls back to local browser storage when Clerk or Neon is not configured.</p>
           <Link className="mt-6 inline-flex rounded-full bg-cyan-300 px-5 py-3 font-bold text-slate-950" href="/app/new">Create a deck</Link>
         </div>
       </main>
@@ -146,7 +167,10 @@ export function DeckEditor({ id }: { id: string }) {
             <button onClick={generateImagesForAllSlides} disabled={generatingAllImages} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold disabled:opacity-60">{generatingAllImages ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />} Images</button>
             <button onClick={exportPptx} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold"><Download size={16} /> PPTX</button>
             <Link href={`/d/${deck.id}`} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold"><MonitorPlay size={16} /> Present</Link>
-            <button onClick={() => persist(deck)} className="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-4 py-2 text-sm font-black text-slate-950"><Save size={16} /> Saved</button>
+            <button onClick={() => persist({ ...deck, isPublic: !deck.isPublic })} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold">{deck.isPublic ? <Globe2 size={16} /> : <Lock size={16} />} {deck.isPublic ? "Public" : "Private"}</button>
+            <button onClick={copyShareLink} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold"><Copy size={16} /> Copy link</button>
+            <button onClick={() => persist(deck)} className="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-4 py-2 text-sm font-black text-slate-950"><Save size={16} /> {saveSource === "server" ? "Synced" : "Saved local"}</button>
+            <button onClick={removeDeck} className="inline-flex items-center gap-2 rounded-full border border-red-400/30 px-4 py-2 text-sm font-bold text-red-200"><Trash2 size={16} /> Delete deck</button>
           </div>
         </div>
       </header>

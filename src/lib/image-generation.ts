@@ -56,13 +56,14 @@ function findDataUrl(value: unknown): string | null {
 export async function generateSlideImage(input: GenerateImageInput): Promise<{ imageUrl: string; provider: "openrouter" | "fallback" }> {
   const parsed = GenerateImageInputSchema.parse(input);
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) return { imageUrl: svgFallback(parsed), provider: "fallback" };
+  const model = process.env.OPENROUTER_IMAGE_MODEL;
+  if (!apiKey || !model) return { imageUrl: svgFallback(parsed), provider: "fallback" };
 
   const prompt = `Create a clean 16:9 presentation slide illustration. No text, no labels, no watermarks. Make it polished, modern, and useful as a visual for this slide. Slide title: ${parsed.title || "Untitled"}. Visual brief: ${parsed.prompt}`;
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 75_000);
+    const timeout = setTimeout(() => controller.abort(), 45_000);
     const response = await fetch(OPENROUTER_URL, {
       method: "POST",
       signal: controller.signal,
@@ -73,7 +74,7 @@ export async function generateSlideImage(input: GenerateImageInput): Promise<{ i
         "X-Title": "DeckForge",
       },
       body: JSON.stringify({
-        model: process.env.OPENROUTER_IMAGE_MODEL ?? "openai/gpt-5.4-image-2",
+        model,
         modalities: ["image", "text"],
         messages: [{ role: "user", content: prompt }],
       }),

@@ -4,13 +4,22 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { Deck } from "@/lib/deck-schema";
-import { getLocalDecks } from "@/lib/storage";
+import { getDecks } from "@/lib/storage";
 
 export default function DashboardPage() {
   const [decks, setDecks] = useState<Deck[]>([]);
+  const [source, setSource] = useState<"server" | "local">("local");
 
   useEffect(() => {
-    queueMicrotask(() => setDecks(getLocalDecks()));
+    let mounted = true;
+    void getDecks().then((result) => {
+      if (!mounted) return;
+      setDecks(result.decks);
+      setSource(result.source);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
@@ -20,7 +29,7 @@ export default function DashboardPage() {
           <div>
             <Link href="/" className="text-sm text-cyan-200">← DeckForge</Link>
             <h1 className="mt-2 text-4xl font-black">Your decks</h1>
-            <p className="mt-2 text-slate-300">Local MVP dashboard. Neon persistence is documented and ready to wire with env vars.</p>
+            <p className="mt-2 text-slate-300">{source === "server" ? "Synced to your DeckForge account." : "Local browser mode. Add Clerk + Neon env vars to enable cloud sync."}</p>
           </div>
           <Link href="/app/new" className="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-5 py-3 font-black text-slate-950"><Plus size={18} /> New deck</Link>
         </header>

@@ -16,7 +16,7 @@ DeckForge is a practical, free-ish alternative to tools like Gamma, Canva Presen
 - Print/PDF export flow.
 - PPTX export route using PPTXGenJS.
 - Clerk provider installed.
-- Neon/Drizzle schema documented.
+- Neon/Drizzle persistence for authenticated users, with localStorage fallback when auth/database env vars are missing.
 
 ## Getting Started
 
@@ -50,11 +50,26 @@ npm run build
 npm run lint
 ```
 
-## Database
+## Database + auth persistence
 
-Neon + Drizzle is the chosen persistence layer. The schema lives in `src/db/schema.ts`.
+DeckForge saves decks through route handlers when both Clerk and Neon are configured:
 
-Set `DATABASE_URL`, then run Drizzle migrations after adding migration scripts.
+- `GET /api/decks` lists the signed-in user's decks.
+- `POST /api/decks` saves a generated deck.
+- `GET /api/decks/:id` loads a deck owned by the signed-in user, or a public deck.
+- `PUT /api/decks/:id` updates an owned deck.
+- `DELETE /api/decks/:id` deletes an owned deck.
+
+If `DATABASE_URL`, `CLERK_SECRET_KEY`, or a signed-in Clerk session is unavailable, the client automatically falls back to browser `localStorage` so demos still work.
+
+Set `DATABASE_URL` and Clerk keys, then run:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+The initial migration lives in `drizzle/0000_left_jackpot.sql`.
 
 ## Why not build PowerPoint?
 

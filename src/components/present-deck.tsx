@@ -3,14 +3,20 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Deck } from "@/lib/deck-schema";
-import { getLocalDeck } from "@/lib/storage";
+import { getDeck } from "@/lib/storage";
 import { SlideRenderer } from "./slide-renderer";
 
 export function PresentDeck({ id }: { id: string }) {
   const [deck, setDeck] = useState<Deck | null>(null);
 
   useEffect(() => {
-    queueMicrotask(() => setDeck(getLocalDeck(id)));
+    let mounted = true;
+    void getDeck(id).then((result) => {
+      if (mounted) setDeck(result.deck);
+    });
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   if (!deck) {

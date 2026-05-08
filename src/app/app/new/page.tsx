@@ -3,9 +3,9 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Sparkles } from "lucide-react";
+import { FileUp, Loader2, Sparkles } from "lucide-react";
 import type { Deck } from "@/lib/deck-schema";
-import { saveLocalDeck } from "@/lib/storage";
+import { saveDeck } from "@/lib/storage";
 import { themes } from "@/lib/themes";
 
 export default function NewDeckPage() {
@@ -19,6 +19,12 @@ export default function NewDeckPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function loadSourceFile(file?: File) {
+    if (!file) return;
+    const text = await file.text();
+    setSourceText((current) => [current, `# ${file.name}`, text].filter(Boolean).join("\n\n"));
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -31,7 +37,7 @@ export default function NewDeckPage() {
       });
       if (!response.ok) throw new Error(await response.text());
       const deck = (await response.json()) as Deck;
-      saveLocalDeck(deck);
+      await saveDeck(deck);
       router.push(`/app/decks/${deck.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -66,6 +72,11 @@ export default function NewDeckPage() {
           <label className="block">
             <span className="text-sm font-bold uppercase tracking-widest text-slate-400">Optional source text / notes</span>
             <textarea value={sourceText} onChange={(e) => setSourceText(e.target.value)} className="mt-2 min-h-40 w-full rounded-2xl border border-white/10 bg-slate-900 p-4 outline-none focus:border-cyan-300" placeholder="Paste a proposal, lesson plan, meeting notes, markdown, etc." />
+          </label>
+
+          <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-dashed border-white/20 bg-slate-900/60 p-4 text-slate-300 transition hover:border-cyan-300/70">
+            <span className="inline-flex items-center gap-2"><FileUp size={18} /> Upload .txt or .md source notes</span>
+            <input type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" className="hidden" onChange={(event) => void loadSourceFile(event.target.files?.[0])} />
           </label>
 
           {error ? <p className="rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-red-100">{error}</p> : null}

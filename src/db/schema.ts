@@ -11,7 +11,7 @@ export const users = pgTable("users", {
 export const decks = pgTable(
   "decks",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: text("id").primaryKey(),
     userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     prompt: text("prompt"),
