@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SignInButton, UserButton } from "@clerk/nextjs";
 import { ArrowRight, FileDown, PenLine, Sparkles } from "lucide-react";
 
 const features = [
@@ -15,8 +16,11 @@ export default function Home() {
         <nav className="flex items-center justify-between">
           <div className="text-xl font-black tracking-tight">DeckForge</div>
           <div className="flex items-center gap-3">
+            <Link href="/pricing" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-slate-200">Pricing</Link>
             <Link href="/app" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-slate-200">Dashboard</Link>
             <Link href="/app/new" className="rounded-full bg-cyan-300 px-4 py-2 text-sm font-black text-slate-950">Create deck</Link>
+            <SignInButton mode="modal"><button className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-slate-200">Sign in</button></SignInButton>
+            <UserButton />
           </div>
         </nav>
 

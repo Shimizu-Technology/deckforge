@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { SignInButton, UserButton } from "@clerk/nextjs";
 import { FileUp, Loader2, Sparkles } from "lucide-react";
 import type { Deck } from "@/lib/deck-schema";
 import { saveDeck } from "@/lib/storage";
@@ -49,7 +50,14 @@ export default function NewDeckPage() {
   return (
     <main className="min-h-screen bg-slate-950 p-6 text-white">
       <div className="mx-auto max-w-4xl py-8">
-        <Link href="/app" className="text-sm text-cyan-200">← Dashboard</Link>
+        <div className="flex items-center justify-between gap-4">
+          <Link href="/app" className="text-sm text-cyan-200">← Dashboard</Link>
+          <div className="flex items-center gap-3">
+            <Link href="/pricing" className="text-sm text-slate-300">Pricing</Link>
+            <SignInButton mode="modal"><button className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">Sign in</button></SignInButton>
+            <UserButton />
+          </div>
+        </div>
         <h1 className="mt-6 text-5xl font-black">Generate a deck</h1>
         <p className="mt-4 max-w-2xl text-lg text-slate-300">Tell DeckForge the topic, audience, tone, and optional source material. OpenRouter powers real generation when configured; otherwise the app falls back to a deterministic demo deck.</p>
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { SignInButton, UserButton } from "@clerk/nextjs";
 import { Plus } from "lucide-react";
 import type { Deck } from "@/lib/deck-schema";
 import { getDecks } from "@/lib/storage";
@@ -31,7 +32,11 @@ export default function DashboardPage() {
             <h1 className="mt-2 text-4xl font-black">Your decks</h1>
             <p className="mt-2 text-slate-300">{source === "server" ? "Synced to your DeckForge account." : "Local browser mode. Add Clerk + Neon env vars to enable cloud sync."}</p>
           </div>
-          <Link href="/app/new" className="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-5 py-3 font-black text-slate-950"><Plus size={18} /> New deck</Link>
+          <div className="flex items-center gap-3">
+            <SignInButton mode="modal"><button className="rounded-full border border-white/15 px-5 py-3 font-bold">Sign in to sync</button></SignInButton>
+            <UserButton />
+            <Link href="/app/new" className="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-5 py-3 font-black text-slate-950"><Plus size={18} /> New deck</Link>
+          </div>
         </header>
 
         {decks.length ? (
