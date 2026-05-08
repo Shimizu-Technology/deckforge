@@ -113,3 +113,15 @@ Routes:
 The client storage module now tries server persistence first. If Clerk, Neon, or auth is unavailable, it falls back to localStorage so the app remains demoable locally.
 
 Decks can be toggled public/private in the editor. Public links use `/d/:id` and load from Neon when available; local demo decks still work in the same browser through localStorage fallback.
+
+
+## Billing and limits
+
+Stripe is scaffolded but not enforced yet. The first implementation includes:
+
+- `/pricing` for Free/Pro positioning.
+- `POST /api/stripe/checkout` for Clerk-authenticated users.
+- `POST /api/stripe/webhook` for subscription created/updated/deleted events.
+- `subscriptions` table in Drizzle/Neon.
+
+Next enforcement step: add a server helper that checks active subscription status and gates high-cost actions like unlimited generation, PPTX export, and image generation.

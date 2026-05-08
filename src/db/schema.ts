@@ -36,3 +36,19 @@ export const usageEvents = pgTable(
   },
   (table) => [index("usage_events_user_id_idx").on(table.userId)],
 );
+
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeSubscriptionId: text("stripe_subscription_id").unique(),
+    status: text("status").notNull().default("inactive"),
+    priceId: text("price_id"),
+    currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("subscriptions_user_id_idx").on(table.userId), index("subscriptions_customer_idx").on(table.stripeCustomerId)],
+);

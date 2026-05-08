@@ -74,3 +74,21 @@ The initial migration lives in `drizzle/0000_left_jackpot.sql`.
 ## Why not build PowerPoint?
 
 Because that is the trap. DeckForge is content-first and template-driven. Users should edit meaning and structure, while themes handle presentation quality.
+
+
+## Billing
+
+Stripe scaffolding is included:
+
+- `POST /api/stripe/checkout` starts monthly/yearly Pro checkout.
+- `POST /api/stripe/webhook` records subscription status changes.
+- `/pricing` provides the initial pricing page.
+
+Required env vars:
+
+```bash
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRO_MONTHLY_PRICE_ID=
+STRIPE_PRO_YEARLY_PRICE_ID=
+```
