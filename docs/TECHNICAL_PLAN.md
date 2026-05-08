@@ -68,3 +68,26 @@ Required for auth:
 
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
+
+## Image generation
+
+Route: `POST /api/generate-image`
+
+DeckForge now uses slide `visualPrompt` fields to generate 16:9 slide visuals.
+
+Flow:
+
+1. User clicks **Generate** on a slide, or **Images** in the toolbar for the whole deck.
+2. The app calls `/api/generate-image` with slide title, theme, and visual prompt.
+3. The server calls OpenRouter with `modalities: ["image", "text"]`.
+4. The route extracts a returned base64 image data URL.
+5. If OpenRouter image generation is unavailable, the route returns a deterministic SVG fallback visual.
+6. The image is stored in the slide JSON as `imageUrl` and rendered in web/PPTX exports.
+
+Environment variable:
+
+```bash
+OPENROUTER_IMAGE_MODEL=openai/gpt-5.4-image-2
+```
+
+Because generated images can be large, the localStorage MVP can hit browser storage limits for image-heavy decks. Neon/S3/R2 storage should be added before production image-heavy usage.

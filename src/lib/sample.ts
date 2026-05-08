@@ -15,6 +15,7 @@ export function buildFallbackDeck(input: GenerateDeckInput): Deck {
       bullets: [],
       columns: [],
       speakerNotes: "Open with the audience's goal and why this topic matters.",
+      visualPrompt: "A polished presentation cover image representing the topic with clean modern visual style.",
     }),
     slide({
       type: "section",
@@ -35,6 +36,7 @@ export function buildFallbackDeck(input: GenerateDeckInput): Deck {
       ],
       columns: [],
       speakerNotes: "Use this slide to connect the topic to the audience's real world.",
+      visualPrompt: "An editorial illustration showing why this topic matters to the intended audience.",
     }),
     slide({
       type: "twoColumn",

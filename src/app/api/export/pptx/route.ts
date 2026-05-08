@@ -10,12 +10,12 @@ const colors: Record<string, { bg: string; fg: string; accent: string; muted: st
   midnight: { bg: "020617", fg: "F8FAFC", accent: "60A5FA", muted: "D4D4D8" },
 };
 
-function addBullets(slide: pptxgen.Slide, items: string[] = [], color: string) {
+function addBullets(slide: pptxgen.Slide, items: string[] = [], color: string, width = 11.4) {
   if (!items.length) return;
   slide.addText(items.map((text) => ({ text, options: { bullet: { type: "bullet" } } })), {
     x: 0.9,
     y: 2.7,
-    w: 11.4,
+    w: width,
     h: 3.2,
     fontSize: 22,
     color,
@@ -32,8 +32,16 @@ function renderSlide(pres: pptxgen, item: Slide, index: number, deckTitle: strin
   slide.addText(item.title, { x: 0.7, y: 1.05, w: 11.3, h: 1.2, fontSize: item.title.length > 45 ? 34 : 44, bold: true, color: palette.fg, fit: "shrink" });
   if (item.subtitle) slide.addText(item.subtitle, { x: 0.75, y: 2.1, w: 10.8, h: 0.5, fontSize: 18, color: palette.muted, fit: "shrink" });
 
+  if (item.imageUrl) {
+    try {
+      slide.addImage({ data: item.imageUrl, x: 7.0, y: 2.65, w: 5.2, h: 2.925 });
+    } catch (error) {
+      console.error("Failed to add image to PPTX", error);
+    }
+  }
+
   if (item.quote) {
-    slide.addText(`“${item.quote}”`, { x: 1, y: 2.75, w: 10.8, h: 1.6, fontSize: 30, bold: true, color: palette.fg, fit: "shrink" });
+    slide.addText(`“${item.quote}”`, { x: 1, y: 2.75, w: item.imageUrl ? 5.6 : 10.8, h: 1.6, fontSize: 30, bold: true, color: palette.fg, fit: "shrink" });
     if (item.attribution) slide.addText(`— ${item.attribution}`, { x: 1, y: 4.55, w: 6, h: 0.4, fontSize: 16, color: palette.muted });
   } else if (item.columns?.length) {
     item.columns.slice(0, 2).forEach((column, columnIndex) => {
@@ -43,7 +51,7 @@ function renderSlide(pres: pptxgen, item: Slide, index: number, deckTitle: strin
       slide.addText(column.bullets.map((text) => ({ text, options: { bullet: { type: "bullet" } } })), { x: x + 0.45, y: 3.55, w: 4.8, h: 1.8, fontSize: 16, color: palette.fg, fit: "shrink" });
     });
   } else {
-    addBullets(slide, item.bullets, palette.fg);
+    addBullets(slide, item.bullets, palette.fg, item.imageUrl ? 5.7 : 11.4);
   }
 
   if (item.speakerNotes) slide.addNotes(item.speakerNotes);

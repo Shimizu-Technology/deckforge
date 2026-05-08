@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, FileText, MonitorPlay, Plus, Save, Trash2 } from "lucide-react";
+import { Download, FileText, ImageIcon, Loader2, MonitorPlay, Plus, Save, Sparkles, Trash2 } from "lucide-react";
 import { nanoid } from "nanoid";
 import type { Deck, Slide } from "@/lib/deck-schema";
 import { getLocalDeck, saveLocalDeck } from "@/lib/storage";
@@ -23,6 +23,8 @@ function emptySlide(): Slide {
 export function DeckEditor({ id }: { id: string }) {
   const [deck, setDeck] = useState<Deck | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const [generatingAllImages, setGeneratingAllImages] = useState(false);
   const active = deck?.slides[activeIndex];
 
   useEffect(() => {
@@ -46,6 +48,61 @@ export function DeckEditor({ id }: { id: string }) {
     if (!deck || !active) return;
     const slides = deck.slides.map((slide, index) => (index === activeIndex ? { ...slide, ...patch } : slide));
     persist({ ...deck, slides });
+  }
+
+  async function requestSlideImage(slide: Slide, themeId: string) {
+    const response = await fetch("/api/generate-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: slide.visualPrompt || `${slide.title}. ${slide.subtitle || ""} ${(slide.bullets || []).join(", ")}`,
+        title: slide.title,
+        themeId,
+      }),
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return (await response.json()) as { imageUrl: string; provider: string };
+  }
+
+  async function generateImageForSlide(index = activeIndex) {
+    if (!deck) return;
+    const slide = deck.slides[index];
+    if (!slide) return;
+    setGeneratingImage(true);
+    try {
+      const result = await requestSlideImage(slide, deck.themeId);
+      const slides = deck.slides.map((item, slideIndex) =>
+        slideIndex === index
+          ? { ...item, imageUrl: result.imageUrl, imageAlt: item.visualPrompt || item.title }
+          : item,
+      );
+      persist({ ...deck, slides });
+    } finally {
+      setGeneratingImage(false);
+    }
+  }
+
+  async function generateImagesForAllSlides() {
+    if (!deck) return;
+    setGeneratingAllImages(true);
+    try {
+      let nextDeck = deck;
+      for (let index = 0; index < nextDeck.slides.length; index += 1) {
+        const slide = nextDeck.slides[index];
+        if (!slide) continue;
+        // Serialize image calls to avoid hammering OpenRouter/provider limits.
+        const result = await requestSlideImage(slide, nextDeck.themeId);
+        const slides = nextDeck.slides.map((item, slideIndex) =>
+          slideIndex === index
+            ? { ...item, imageUrl: result.imageUrl, imageAlt: item.visualPrompt || item.title }
+            : item,
+        );
+        nextDeck = { ...nextDeck, slides };
+        persist(nextDeck);
+      }
+    } finally {
+      setGeneratingAllImages(false);
+    }
   }
 
   async function exportPptx() {
@@ -86,6 +143,7 @@ export function DeckEditor({ id }: { id: string }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold"><FileText size={16} /> PDF</button>
+            <button onClick={generateImagesForAllSlides} disabled={generatingAllImages} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold disabled:opacity-60">{generatingAllImages ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />} Images</button>
             <button onClick={exportPptx} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold"><Download size={16} /> PPTX</button>
             <Link href={`/d/${deck.id}`} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold"><MonitorPlay size={16} /> Present</Link>
             <button onClick={() => persist(deck)} className="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-4 py-2 text-sm font-black text-slate-950"><Save size={16} /> Saved</button>
@@ -129,6 +187,22 @@ export function DeckEditor({ id }: { id: string }) {
             <label className="block"><span className="text-xs font-bold uppercase tracking-widest text-slate-400">Title</span><input className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 p-3" value={active.title} onChange={(e) => updateActive({ title: e.target.value })} /></label>
             <label className="block"><span className="text-xs font-bold uppercase tracking-widest text-slate-400">Subtitle</span><input className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 p-3" value={active.subtitle ?? ""} onChange={(e) => updateActive({ subtitle: e.target.value })} /></label>
             <label className="block"><span className="text-xs font-bold uppercase tracking-widest text-slate-400">Bullets</span><textarea className="mt-2 min-h-36 w-full rounded-xl border border-white/10 bg-slate-900 p-3" value={(active.bullets ?? []).join("\n")} onChange={(e) => updateActive({ bullets: e.target.value.split("\n").filter(Boolean) })} /></label>
+            <label className="block"><span className="text-xs font-bold uppercase tracking-widest text-slate-400">Visual prompt</span><textarea className="mt-2 min-h-24 w-full rounded-xl border border-white/10 bg-slate-900 p-3" value={active.visualPrompt ?? ""} onChange={(e) => updateActive({ visualPrompt: e.target.value })} /></label>
+            <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Slide image</span>
+                <button onClick={() => generateImageForSlide()} disabled={generatingImage} className="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-3 py-2 text-xs font-black text-slate-950 disabled:opacity-60">
+                  {generatingImage ? <Loader2 className="animate-spin" size={14} /> : <ImageIcon size={14} />}
+                  {active.imageUrl ? "Regenerate" : "Generate"}
+                </button>
+              </div>
+              {active.imageUrl ? (
+                <div className="mt-3 overflow-hidden rounded-xl border border-white/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={active.imageUrl} alt={active.imageAlt ?? active.title} className="aspect-video w-full object-cover" />
+                </div>
+              ) : <p className="mt-3 text-sm text-slate-400">No image yet. Generate from the visual prompt.</p>}
+            </div>
             <label className="block"><span className="text-xs font-bold uppercase tracking-widest text-slate-400">Speaker notes</span><textarea className="mt-2 min-h-28 w-full rounded-xl border border-white/10 bg-slate-900 p-3" value={active.speakerNotes ?? ""} onChange={(e) => updateActive({ speakerNotes: e.target.value })} /></label>
             <button onClick={() => {
               if (!deck) return;

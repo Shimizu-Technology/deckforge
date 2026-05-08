@@ -30,6 +30,8 @@ export const SlideSchema = z.object({
   attribution: z.string().optional(),
   speakerNotes: z.string().optional(),
   visualPrompt: z.string().optional(),
+  imageUrl: z.string().optional(),
+  imageAlt: z.string().optional(),
 });
 
 export const DeckSchema = z.object({
